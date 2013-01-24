@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link href="css/style.css" rel="stylesheet"/>
+    <link href='http://fonts.googleapis.com/css?family=Orbitron:500' rel='stylesheet'/>
+    <script src="libs/jquery_1.8.3_min.js"></script>
+    <script src="libs/easeljs-0.5.0.min.js"></script>
+    <script src="libs/preloadjs-0.2.0.min.js"></script>
+    <script src="libs/soundjs-0.3.0.min.js"></script>
+    <script src="scripts/main.js"></script>
+    <script src="scripts/helicopter.js"></script>
+    <script src="scripts/paratrooper.js"></script>
+    <script src="scripts/bomber.js"></script>
+    <script src="scripts/explosion.js"></script>
+    <script src="scripts/bomb.js"></script>
+    <title>Paratroopers Game</title>
+</head>
+<body onload="init();">
+<div class="stage_wrap">
+    <canvas id="stage" width="1000" height="600"></canvas>
+    <div class="start_button">
+        Game Start
+    </div>
+    <div class="score">
+        Score:
+        <span></span>
+    </div>
+</div>
+<div class="debug">
+    <p>Game Info</p>
+    <p id="one"></p>
+    <p id="two"></p>
+</div>
+<div class="loading">
+    <p>Loading...</p>
+</div>
+</body>
+</html>
