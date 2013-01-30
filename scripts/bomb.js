@@ -21,19 +21,19 @@
     b.BitmapAnimation_initialize = b.initialize;
     b.initialize = function (x, y) {
         this.BitmapAnimation_initialize(this.bombSpriteSheet);
-        this.height = 14;
+        this.height = 18;
         this.width = 50;
-        this.regX = 10;
+        this.regX = 3;
         this.regY = 3;
-        this.scaleX = this.scaleY = .7;
+        this.scaleX = this.scaleY = .8;
         this.y = y;
         this.x = x;
-        this.dX = 2.5;
+        this.dX = 3;
         this.dY = 3.5;
         if (this.x < 500) {
-            this.rotation = -160;
+            this.rotation = -170;
         } else if (this.x > 500) {
-            this.rotation = -20
+            this.rotation = -40
         }
         this.gotoAndPlay('drop');
     };

@@ -7,8 +7,9 @@ var KEY_SPACE = 32;
 var KEY_LEFT = 37;
 var KEY_RIGHT = 39;
 var points = 0;
-var ttd = 0;
-var multiplier = 100;
+var ttd = 10;
+var gameOver = true;
+var multiplier = 130;
 var rotateRight, rotateLeft, fire;
 var manifest = [
       {id: 'sprites', src: './images/paratroopers.png'}
@@ -18,6 +19,7 @@ var manifest = [
     , {id: 'turretImg', src: './images/turret.png'}
     , {id: 'cannonImg', src: './images/cannon.png'}
     , {id: 'menuBgd', src: './images/menu_bgd.jpg'}
+    , {id: 'bulletImg', src: './images/bullet.png'}
     , {id: 'bgdMusic', src: './sounds/mixdown.mp3|./sounds/mixdown.wav'}
     , {id: 'explosion', src: './sounds/explosion.ogg|./sounds/explosion.mp3|./sounds/explosion.wav'}
     , {id: 'shot', src: './sounds/shot.ogg|./sounds/shot.mp3|./sounds/shot.wav'}
@@ -25,6 +27,8 @@ var manifest = [
     , {id: 'scream2', src: './sounds/scream2.ogg|./sounds/scream2.mp3|./sounds/scream2.wav'}
     , {id: 'scream3', src: './sounds/scream3.ogg|./sounds/scream3.mp3|./sounds/scream3.wav'}
     , {id: 'helicopter', src: './sounds/helicopter.ogg|./sounds/helicopter.mp3|./sounds/helicopter.wav'}
+    , {id: 'bomb_whistle', src: './sounds/bomb.ogg|./sounds/bomb.mp3|./sounds/bomb.wav'}
+    , {id: 'bomber_fly', src: './sounds/bomber_fly.ogg|./sounds/bomber_fly.mp3|./sounds/bomber_fly.wav'}
 ];
 var angle = 0;
 document.onkeydown = handleKeyDown;
@@ -40,7 +44,6 @@ function  init () {
 
 function doneLoading () {
     $('.loading').fadeOut();
-    //createjs.SoundJS.play('bgdMusic', createjs.SoundJS.INTERRUPT_NONE, 0, 0, -1);
     canvas = document.getElementById('stage');
     stage = new createjs.Stage(canvas);
     stageWidth = canvas.width;
@@ -49,7 +52,9 @@ function doneLoading () {
 }
 
 function initGameMenu () {
+    createjs.SoundJS.play('bgdMusic', createjs.SoundJS.INTERRUPT_NONE, 0, 0, -1);
     $('.stage_wrap').css('background' , 'url("./images/menu_bgd.jpg")');
+    $('.buttons').show();
     var logoText = new createjs.Text('ParatrooperS', '100px Orbitron', '#caebd0');
     logoText.x = 120;
     logoText.y = 30;
@@ -58,30 +63,47 @@ function initGameMenu () {
     stage.addChild(logoText);
     stage.update();
     $('.start_button').on('click', function () {
-        $(this).hide();
+        $('.buttons').hide();
         stage.removeChild(logoText);
         stage.update();
+        createjs.SoundJS.stop('bgdMusic');
         gameStart();
     });
+
 }
 
 function gameStart () {
+    ttd = 10;
+    count = 0;
+    gameOver = false;
+    points = 0;
+    bullets = [];
+    enemies = [];
+    particles = [];
     $('.stage_wrap').css('background' , 'url("./images/background.jpg")');
     $('.score').show();
     var ground = new createjs.Shape();
     ground.graphics.beginFill('#b0a6a5').drawRect(0, 580, 1000, 20);
-    base = new createjs.Bitmap(preload.getResult('baseImg').result);
-    base.x = 450;
-    base.y = 513;
-    turret = new createjs.Bitmap(preload.getResult('turretImg').result);
-    turret.x = 462;
-    turret.y = 454;
-    cannon = new createjs.Bitmap(preload.getResult('cannonImg').result);
-    cannon.regX = 12;
-    cannon.regY = 119;
-    cannon.x = 501;
-    cannon.y = 465;
-    cannon.rotation = 0;
+    if (!base) {
+        base = new createjs.Bitmap(preload.getResult('baseImg').result);
+        base.x = 450;
+        base.y = 513;
+    }
+    if(!turret) {
+        turret = new createjs.Bitmap(preload.getResult('turretImg').result);
+        turret.x = 462;
+        turret.y = 454;
+        turret.width = 77;
+        turret.height = 72;
+    }
+    if (!cannon) {
+        cannon = new createjs.Bitmap(preload.getResult('cannonImg').result);
+        cannon.regX = 12;
+        cannon.regY = 119;
+        cannon.x = 501;
+        cannon.y = 465;
+        cannon.rotation = 0;
+    }
     stage.addChild(ground, base, cannon, turret);
     stage.update();
     createjs.useRAF = true;
@@ -89,35 +111,61 @@ function gameStart () {
     createjs.Ticker.addListener(window);
 }
 
-function collide (object1, object2) {
-    return object1.x <= (object2.x + object2.width - 6) &&
-           object1.y <= (object2.y + object2.height - 6) &&
-           object2.x+3 <= (object1.x + object1.width) &&
-           object2.y+3 <= (object1.y + object1.height);
-}
-
 function tick () {
+    bulletsUpdate();
     updateParticles();
-    cannonAction();
-    if (count == 10000) {
+    if (ttd <= 0) {
+        gameOver = true;
+        if (ttd == 0) {
+            count = 0;
+            ttd = -1;
+            for (var m = 0; m < 5; m++) {
+                var lastExplosion = new Explosion(Math.random()*70+420, Math.random()*50+450);
+                stage.addChild(lastExplosion);
+            }
+            createjs.SoundJS.play('explosion', createjs.SoundJS.INTERRUPT_ANY, 0, 0, 0);
+            stage.removeChild(turret);
+            stage.removeChild(cannon);
+            var gameOverText = new createjs.Text('Game Over', '100px Orbitron', '#f2230e');
+            gameOverText.x = 180;
+            gameOverText.y = 150;
+            gameOverText.outline = false;
+            gameOverText.shadow = new createjs.Shadow('#567b4d', 4, 4, 5);
+            stage.addChild(gameOverText);
+        }
+        if (count == 500) {
+            stage.removeAllChildren();
+            base = null;
+            turret = null;
+            cannon = null;
+            createjs.Ticker.removeListener(window);
+            $('.score').hide();
+            initGameMenu ();
+        }
+    }
+    if (count == 10001) {
         count = 0;
     }
-    if (count > 200 && count % 1000 == 0 && multiplier > 50) {
-        multiplier -= 10;
+    if (gameOver == false) {
+        cannonAction();
+        if (count > 200 && count % 1000 == 0 && multiplier > 50) {
+            multiplier -= 10;
+        }
+        if (count > 200 && count % multiplier == 0) {
+            var helicopter = new Helicopter();
+            stage.addChild(helicopter);
+            enemies.push(helicopter);
+            createjs.SoundJS.play('helicopter', createjs.SoundJS.INTERRUPT_EARLY, 0, 0, 0);
+        }
+        if (count > 1000 && count % 600 == 0) {
+            var bomber = new Bomber();
+            stage.addChild(bomber);
+            enemies.push(bomber);
+            createjs.SoundJS.play('bomber_fly', createjs.SoundJS.INTERRUPT_ANY, 0, 0, 0);
+        }
     }
-    if (count > 200 && count % multiplier == 0) {
-        var helicopter = new Helicopter();
-        stage.addChild(helicopter);
-        enemies.push(helicopter);
-        createjs.SoundJS.play('helicopter', createjs.SoundJS.INTERRUPT_EARLY, 0, 0, 0);
-    }
-    if (count == 9000 || count == 9500 || count == 10000) {
-        var bomber = new Bomber();
-        stage.addChild(bomber);
-        enemies.push(bomber);
-    }
-
     if (enemies.length > 0) {
+        var collide = ndgmr.checkPixelCollision;
         for (var i = 0; i < enemies.length; i++) {
             var e = enemies[i];
             if (e instanceof Helicopter) {
@@ -134,6 +182,9 @@ function tick () {
             }
             if (e instanceof Paratrooper) {
                 if(e.currentAnimation == 'runRight' && e.x >= 445 || e.currentAnimation == 'runLeft' && e.x <= 530) {
+                    var explosion = new Explosion(Math.random()*70+420, Math.random()*50+450);
+                    createjs.SoundJS.play('explosion', createjs.SoundJS.INTERRUPT_ANY, 0, 0, 0);
+                    stage.addChild(explosion);
                     stage.removeChild(e);
                     enemies.splice(i, 1);
                     ttd -= 1;
@@ -147,21 +198,39 @@ function tick () {
                     }
                     stage.addChild(bomb);
                     enemies.push(bomb);
+                    createjs.SoundJS.play('bomb_whistle', createjs.SoundJS.INTERRUPT_ANY, 0, 0, 0);
+                }
+            }
+            if (e instanceof Bomb) {
+                if (collide(e, turret, 1)) {
+                    if (e.x > 500) {
+                        var exp = new Explosion(e.x-20, e.y-10);
+                    } else if (e.x < 500) {
+                        exp = new Explosion(e.x-30, e.y-20);
+                    }
+                    ttd -= 1;
+                    stage.addChild(exp);
+                    stage.removeChild(e);
+                    enemies.splice(i, 1);
+                    createjs.SoundJS.play('explosion', createjs.SoundJS.INTERRUPT_ANY, 0, 0, 0);
                 }
             }
             if (bullets.length > 0) {
                 for (var j = 0; j < bullets.length; j++) {
                     var b = bullets[j];
-                    if (collide(b, e)) {
+                    if (collide(b, e, 1)) {
                         if (e instanceof Helicopter || e instanceof Bomber || e instanceof Bomb) {
+                            explosion = new Explosion(e.x + 20, e.y - 10);
                             if (e instanceof Helicopter) {
                                 points += 100;
                             } else if (e instanceof Bomber) {
                                 points += 500;
+                                createjs.SoundJS.stop('bomber_fly');
                             } else if (e instanceof Bomb) {
                                 points += 1000;
+                                createjs.SoundJS.stop('bomb_whistle');
+                                explosion = new Explosion(e.x - 20, e.y - 10);
                             }
-                            var explosion = new Explosion(e.x + 20, e.y - 10);
                             stage.addChild(explosion);
                             createjs.SoundJS.play('explosion', createjs.SoundJS.INTERRUPT_ANY, 0, 0, 0);
                         } else if (e instanceof Paratrooper) {
@@ -192,15 +261,14 @@ function tick () {
 }
 
 function cannonAction (){
-    if (rotateRight && angle < 70){angle += 2.5; cannon.rotation = angle;}
-    if (rotateLeft && angle > -70){angle -= 2.5; cannon.rotation = angle;}
-    if (fire && count % 10 == 0) {
+    if (rotateRight && angle < 70){angle += 2.0; cannon.rotation = angle;}
+    if (rotateLeft && angle > -70){angle -= 2.0; cannon.rotation = angle;}
+    if (fire && count % 6 == 0) {
         var bX = cannon.x + Math.cos(cannon.rotation * Math.PI / 180 - Math.PI / 2) * 119;
         var bY = cannon.y + Math.sin(cannon.rotation * Math.PI / 180 - Math.PI / 2) * 119;
         var bDx = Math.cos(cannon.rotation * Math.PI/180 - Math.PI/2) * 7;
         var bDy = Math.sin(cannon.rotation * Math.PI/180 - Math.PI/2) * 7;
-        var bullet = new createjs.Shape();
-        bullet.graphics.beginFill('#000000').drawRect(0, 0, 3, 3);
+        var bullet = new createjs.Bitmap(preload.getResult('bulletImg').result);
         bullet.x = bX;
         bullet.y = bY;
         bullet.width = 3;
@@ -211,6 +279,9 @@ function cannonAction (){
         stage.addChild(bullet);
         createjs.SoundJS.play('shot', createjs.SoundJS.INTERRUPT_ANY, 0, 0, 0);
     }
+}
+
+function bulletsUpdate () {
     if (bullets.length > 0) {
         for (var j = 0; j < bullets.length; j ++) {
             var  b = bullets[j];
