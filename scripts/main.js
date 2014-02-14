@@ -37,6 +37,7 @@ document.onkeyup = handleKeyUp;
 function  init () {
     $('.loading').show();
     preload = new createjs.PreloadJS();
+    preload.useXHR = false;
     preload.onComplete = doneLoading;
     preload.installPlugin(createjs.SoundJS);
     preload.loadManifest(manifest);
@@ -165,7 +166,7 @@ function tick () {
         }
     }
     if (enemies.length > 0) {
-        var collide = ndgmr.checkPixelCollision;
+        var collide = ndgmr.checkRectCollision;;
         for (var i = 0; i < enemies.length; i++) {
             var e = enemies[i];
             if (e instanceof Helicopter) {
