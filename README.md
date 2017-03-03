@@ -1,4 +1,4 @@
 paratroopers
 ============
 
-HTML5 Canvas Paratroopers Game Remake
+HTML5 Canvas Paratroopers Game Remake. CreateJS framework test.
